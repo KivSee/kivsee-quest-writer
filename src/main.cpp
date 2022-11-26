@@ -1,5 +1,6 @@
 #include <SPI.h>
 #include <MFRC522.h>
+#include "MFRC522_func.h"
 // #include "SoftwareSerial.h"
 // #include "DFRobotDFPlayerMini.h"
 #include <FastLED.h>
@@ -13,7 +14,6 @@ byte currWriteLevel = 0;
 #define SS_PIN 10
 #define RST_PIN 9
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Instance of the class
-#include "MFRC522_func.h"
 
 MFRC522::MIFARE_Key key; 
 // Init array that will store new NUID 
@@ -22,7 +22,6 @@ byte blockAddr      = 4;
 byte buffer[18];
 byte size = sizeof(buffer);
 byte trailerBlock   = 7;
-bool read_success, write_success, auth_success;
 
 // sound
 // SoftwareSerial mySoftwareSerial(2, 3); // RX, TX
@@ -150,16 +149,13 @@ void loop() {
     return;
 
   // perform authentication to open communication
-  auth_success = authenticate(trailerBlock, key);
+  bool auth_success = authenticate(trailerBlock, &key, mfrc522);
   if (!auth_success) {
     return;
   }
 
-  // RFID reads get the size and change it.
-  // we have to restore it before every call
-  size = sizeof(buffer);
   // read the tag to get coded information to buffer
-  read_success = read_block(blockAddr, buffer, size);
+  bool read_success = read_block(blockAddr, buffer, size, mfrc522);
   if (!read_success) {
     // Serial.println(F("Initial read failed, closing connection"));
     // Halt PICC
@@ -184,7 +180,7 @@ void loop() {
       0x00, 0x00, 0x00, 0x08  // byte 15 for event track bit[0] = burnerot2018, bit[1] = contra2019, bit[2] = Midburn2022, bit[3] = burnerot2022
     };
 
-    bool write_success = write_and_verify(blockAddr, dataBlock, buffer, size);
+    bool write_success = write_and_verify(blockAddr, dataBlock, buffer, size, mfrc522);
     if(!write_success) {
       // Failed write light the LEDs RED shortly
       FastLED.clear();
@@ -210,7 +206,7 @@ void loop() {
   FastLED.clear();
   FastLED.show();
       
-  // hold everything in place for some time
+  // hold everything in place for some time so we don't accidentally read the same chip again
   delay(200);
 }
 
