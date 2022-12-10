@@ -171,11 +171,17 @@ void loop() {
   }
 
   byte color = *(buffer + 0); // byte 0 for color encoding
+  if(color == 0xff) {
+    color = 0x4; // set uninitialized color to 0x4
+  }
   byte level = *(buffer + 1); // byte 1 for level encoding
   if(level == 0xff) {
     level = 0;
   }
   byte eventTrack = *(buffer + 15); // byte 15 for event track encoding bit[0] = burnerot2018, bit[1] = contra2019, bit[2] = midburn2022, bit[3] = burnerot2022
+  if(eventTrack == 0xff) {
+    eventTrack = 0x8; // set uninitialized eventTrack to 0x8, bit[3] = burnerot2022
+  }
   Serial.print("Current chip color: "); Serial.println(color);
   Serial.print("Current chip level: "); Serial.println(level);
   Serial.print("Current chip eventTrack: "); Serial.println(eventTrack);
