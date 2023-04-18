@@ -7,7 +7,8 @@
 
 // logic
 #define MY_LEVEL 0
-#define EVENT_ID_BIT 3 // burnerot 2022 is bit 3, count starts at 0
+#define SET_SONG 1
+#define EVENT_ID_BIT 4 // afrikaburn 2023 is bit 4, count starts at 0
 byte lastReadLevel = 0;
 byte currWriteLevel = 0;
 
@@ -178,21 +179,26 @@ void loop() {
   if(level == 0xff) {
     level = 0;
   }
+  byte song = *(buffer + 2); // byte 2 for song/animation encoding
+  if(song == 0xff) {
+    song = SET_SONG;
+  }
   byte eventTrack = *(buffer + 15); // byte 15 for event track encoding bit[0] = burnerot2018, bit[1] = contra2019, bit[2] = midburn2022, bit[3] = burnerot2022
   if(eventTrack == 0xff) {
-    eventTrack = 0x8; // set uninitialized eventTrack to 0x8, bit[3] = burnerot2022
+    eventTrack = 0x0 | (1 << EVENT_ID_BIT); // set uninitialized eventTrack according to EVENT_ID_BIT
   }
   Serial.print("Current chip color: "); Serial.println(color);
   Serial.print("Current chip level: "); Serial.println(level);
-  Serial.print("Current chip eventTrack: "); Serial.println(eventTrack);
+  Serial.print("Current chip song: "); Serial.println(song);
+  Serial.print("Current chip eventTrack: "); Serial.println(eventTrack,HEX);
 
   if(switchState == WRITE_MODE) {
     eventTrack |= (1 << EVENT_ID_BIT);
     byte dataBlock[] = {
-      color, currWriteLevel, 0x00, 0x00,
+      color, currWriteLevel, SET_SONG, 0x00,
       0x00, 0x00, 0x00, 0x00, 
       0x00, 0x00, 0x00, 0x00, 
-      0x00, 0x00, 0x00, eventTrack  // byte 15 for event track bit[0] = burnerot2018, bit[1] = contra2019, bit[2] = Midburn2022, bit[3] = burnerot2022
+      0x00, 0x00, 0x00, eventTrack  // byte 15 for event track
     };
 
     bool write_success = write_and_verify(blockAddr, dataBlock, buffer, size, mfrc522);
@@ -209,7 +215,7 @@ void loop() {
       mfrc522.PCD_StopCrypto1();
       return;
     } else {
-      Serial.print("write successful - new chip level: "); Serial.println(currWriteLevel);
+      Serial.print("write successful - new chip song: "); Serial.println(SET_SONG);Serial.println();
     }
   } else if (switchState == READ_MODE) {
     lastReadLevel = level;
